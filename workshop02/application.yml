@@ -1,0 +1,76 @@
+---
+    apiVersion: v1
+    kind: ConfigMap
+    metadata: 
+        name: northwind-configmap
+        namespace: myns
+        labels:
+            name: northwind-configmap
+    data:
+        DB_USER: root
+        DB_HOST: mydb-svc.myns.svc.cluster.local
+
+---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+        name: northwind-app-deploy
+        namespace: myns
+        labels:
+            name: northwind-app
+            version: "v1"
+    spec:
+        replicas: 3
+        selector:
+            matchLabels:
+                name: myapp-pod
+        strategy:
+            type: RollingUpdate
+            rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 1
+        template:
+            metadata:
+                name: myapp-pod
+                labels:
+                    name: myapp-pod
+            spec:
+                containers:
+                    - name: northwind-app-container
+                      image: stackupiss/northwind-app:v1
+                      imagePullPolicy: Always
+                      env:
+                        - name: DB_PASSWORD
+                          valueFrom:
+                            secretKeyRef:
+                                name: northwind-db-secret
+                                key: MYSQL_ROOT_PASSWORD
+                        - name: INSTANCE_IP_ADDRESS
+                          valueFrom:
+                            fieldRef:
+                                fieldPath: status.podIP
+                      envFrom:
+                        - configMapRef:
+                            name: northwind-configmap
+                      ports:
+                        - name: nw-app-http
+                          containerPort: 3000
+
+---
+    apiVersion: v1
+    kind: Service
+    metadata:
+        name: myapp-svc
+        namespace: myns
+        labels:
+            name: myapp-svc
+    spec:
+        type: LoadBalancer
+        selector:
+            name: myapp-pod
+        ports:
+            - name: http
+              port: 80
+              targetPort: nw-app-http
+
+

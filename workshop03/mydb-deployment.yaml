@@ -1,0 +1,85 @@
+---
+    apiVersion: v1
+    kind: ConfigMap
+    metadata: 
+        name: northwind-db-configmap
+        labels:
+            name: northwind-db-configmap
+    data:
+        MYSQL_DATABASE: northwind
+
+---
+    apiVersion: v1
+    kind: Secret
+    metadata:
+        name: northwind-db-secret
+        labels:
+            name: northwind-db-secret
+    data:
+        MYSQL_ROOT_PASSWORD: Y2hhbmdlaXQ=
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: mydb-deploy
+    labels:
+        name: mydb
+        version: "v1"
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            name: mydb
+    template:
+        metadata:
+            name: mydb
+            labels:
+                name: mydb
+        spec:
+            volumes:
+                - name: dbvol
+                  persistentVolumeClaim:
+                    claimName: mydb-pvc
+            # initContainers:
+            #     - name: scrub-container
+            #       image: busybox
+            #       command: ["/bin/sh", "-c", "test -e /scrub && rm -rf /scrub/..?* /scrub/.[!.]* /scrub/*  && test -z \"$(ls -A /scrub)\" || exit 1"]
+            #       volumeMounts:
+            #         - mountPath: /scrub
+            #           name: dbvol
+            containers:
+                - name: northwind-db-container
+                  image: stackupiss/northwind-db:v1
+                  imagePullPolicy: Always
+                  envFrom:
+                    - configMapRef:
+                        name: northwind-db-configmap
+                    - secretRef:
+                        name: northwind-db-secret
+                  ports:
+                    - name: mysql-port
+                      containerPort: 3306
+                  volumeMounts:
+                    - mountPath: /var/lib/mysql
+                      name: dbvol
+
+# ---
+#     apiVersion: v1
+#     kind: Pod
+#     metadata:
+#         name: myapp-scrub
+#         label:
+#             name: myapp-scrub
+#     spec:
+#         volumes:
+#             - name: dbvol
+#               persistentVolumeClaim:
+#                 claimName: mydb-pvc
+#         containers:
+#             - name: scrub-container
+#               image: busybox
+#               command: ["/bin/sh", "-c", "test -e /scrub && rm -rf /scrub/..?* /scrub/.[!.]* /scrub/*  && test -z \"$(ls -A /scrub)\" || exit 1"]
+#               volumeMounts:
+#                 - mountPath: /scrub
+#                   name: dbvol

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+    name: myapp2-svc
+    labels:
+        name: myapp2-svc
+spec:
+    type: ClusterIP
+    selector:
+        name: myapp-pod
+        version: v2
+    ports:
+        - name: http
+          port: 80
+          targetPort: nw-app-http

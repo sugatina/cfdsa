@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+    name: mydb-svc
+    labels:
+        name: mydb-svc
+spec:
+    type: ClusterIP
+    selector:
+        name: mydb
+    ports:
+        - name: northwind-port
+          port: 3306
+          targetPort: 3306
